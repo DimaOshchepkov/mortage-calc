@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Калькулятор ипотеки, вычетов и инвестиций</title>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <script src="app.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="page">
+    <div class="page__container" x-data="mortgageApp()" x-init="recalculate()">
+      <header class="hero">
+        <h1 class="hero__title">Калькулятор ипотеки, вычетов и инвестиций</h1>
+        <p class="hero__text">
+          Калькулятор считает помесячную таблицу по ипотеке, ежегодной
+          индексации дохода, ежегодным возвратам НДФЛ, инвестициям или
+          досрочному погашению. Вычеты начисляются за предыдущий календарный год
+          и зачисляются в январе следующего года.
+        </p>
+      </header>
+
+      <main class="layout">
+        <aside class="panel panel--sticky">
+          <div class="panel__body">
+            <form class="form" @submit.prevent="recalculate()">
+              <section class="form__section">
+                <h2 class="form__title">Параметры расчёта</h2>
+                <div class="form__grid">
+                  <div class="form__field">
+                    <label class="form__label" for="property-price"
+                      >Стоимость жилья, ₽</label
+                    >
+                    <input
+                      id="property-price"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.propertyPrice"
+                      min="0"
+                      step="10000"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="down-payment"
+                      >Первоначальный взнос, ₽</label
+                    >
+                    <input
+                      id="down-payment"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.downPayment"
+                      min="0"
+                      step="10000"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="loan-rate"
+                      >Ставка по ипотеке, %</label
+                    >
+                    <input
+                      id="loan-rate"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.loanRate"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="loan-years"
+                      >Срок, лет</label
+                    >
+                    <input
+                      id="loan-years"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.loanYears"
+                      min="1"
+                      step="1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="inflation"
+                      >Инфляция, %</label
+                    >
+                    <input
+                      id="inflation"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.inflation"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="invest-rate"
+                      >Доходность инвестиций, %</label
+                    >
+                    <input
+                      id="invest-rate"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.investRate"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="extra-percent-income"
+                      >Доля дохода на инвестиции / досрочку, %</label
+                    >
+                    <input
+                      id="extra-percent-income"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.extraPercentOfIncome"
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="strategy">Стратегия</label>
+                    <select
+                      id="strategy"
+                      class="form__select"
+                      x-model="form.strategy"
+                    >
+                      <option value="invest">
+                        Минимальный платёж + инвестиции
+                      </option>
+                      <option value="prepay">
+                        Минимальный платёж + досрочное погашение
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <section class="form__section">
+                <h3 class="form__subtitle">Супруг 1</h3>
+                <div class="form__grid">
+                  <div class="form__field">
+                    <label class="form__label" for="spouse1-income"
+                      >Месячный доход, ₽</label
+                    >
+                    <input
+                      id="spouse1-income"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse1.incomeMonthly"
+                      min="0"
+                      step="1000"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="spouse1-ndfl"
+                      >Ставка НДФЛ, %</label
+                    >
+                    <input
+                      id="spouse1-ndfl"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse1.ndflRate"
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="spouse1-extra"
+                      >Доля дохода на взнос, %</label
+                    >
+                    <input
+                      id="spouse1-extra"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse1.extraPercent"
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <div class="form__checkbox-group">
+                  <label class="form__checkbox-row" for="spouse1-purchase">
+                    <input
+                      id="spouse1-purchase"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse1.purchaseDeduction"
+                    />
+                    Вычет за покупку жилья
+                  </label>
+                  <label class="form__checkbox-row" for="spouse1-interest">
+                    <input
+                      id="spouse1-interest"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse1.interestDeduction"
+                    />
+                    Вычет по процентам
+                  </label>
+                  <label class="form__checkbox-row" for="spouse1-iis">
+                    <input
+                      id="spouse1-iis"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse1.iisDeduction"
+                    />
+                    Вычет по ИИС
+                  </label>
+                </div>
+              </section>
+
+              <section class="form__section">
+                <h3 class="form__subtitle">Супруг 2</h3>
+                <div class="form__grid">
+                  <div class="form__field">
+                    <label class="form__label" for="spouse2-income"
+                      >Месячный доход, ₽</label
+                    >
+                    <input
+                      id="spouse2-income"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse2.incomeMonthly"
+                      min="0"
+                      step="1000"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="spouse2-ndfl"
+                      >Ставка НДФЛ, %</label
+                    >
+                    <input
+                      id="spouse2-ndfl"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse2.ndflRate"
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                  <div class="form__field">
+                    <label class="form__label" for="spouse2-extra"
+                      >Доля дохода на взнос, %</label
+                    >
+                    <input
+                      id="spouse2-extra"
+                      class="form__input"
+                      type="number"
+                      x-model.number="form.spouse2.extraPercent"
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <div class="form__checkbox-group">
+                  <label class="form__checkbox-row" for="spouse2-purchase">
+                    <input
+                      id="spouse2-purchase"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse2.purchaseDeduction"
+                    />
+                    Вычет за покупку жилья
+                  </label>
+                  <label class="form__checkbox-row" for="spouse2-interest">
+                    <input
+                      id="spouse2-interest"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse2.interestDeduction"
+                    />
+                    Вычет по процентам
+                  </label>
+                  <label class="form__checkbox-row" for="spouse2-iis">
+                    <input
+                      id="spouse2-iis"
+                      class="form__checkbox"
+                      type="checkbox"
+                      x-model="form.spouse2.iisDeduction"
+                    />
+                    Вычет по ИИС
+                  </label>
+                </div>
+              </section>
+
+              <section class="form__section">
+                <div class="form__actions">
+                  <button class="button" type="submit">Пересчитать</button>
+                  <button
+                    class="button button--secondary"
+                    type="button"
+                    @click="resetDefaults()"
+                  >
+                    Сбросить
+                  </button>
+                  <button
+                    class="button button--secondary"
+                    type="button"
+                    @click="downloadCsv()"
+                  >
+                    Скачать CSV
+                  </button>
+                </div>
+              </section>
+            </form>
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="summary">
+            <article class="summary__card">
+              <div class="summary__label">Сумма кредита</div>
+              <div
+                class="summary__value"
+                x-text="fmt(summary.loanAmount)"
+              ></div>
+              <div class="summary__sub">
+                Стоимость жилья минус первоначальный взнос
+              </div>
+            </article>
+            <article class="summary__card">
+              <div class="summary__label">Базовый платёж</div>
+              <div
+                class="summary__value"
+                x-text="fmt(summary.basePayment)"
+              ></div>
+              <div class="summary__sub">Аннуитет по стартовым условиям</div>
+            </article>
+            <article class="summary__card">
+              <div class="summary__label">Месяц закрытия</div>
+              <div
+                class="summary__value"
+                x-text="summary.closeMonth || '—'"
+              ></div>
+              <div
+                class="summary__sub"
+                x-text="summary.closeLabel || 'Не достигается в пределах расчёта'"
+              ></div>
+            </article>
+          </div>
+
+          <div class="summary">
+            <article class="summary__card">
+              <div class="summary__label">Всего возвратов НДФЛ</div>
+              <div
+                class="summary__value"
+                x-text="fmt(summary.totalRefunds)"
+              ></div>
+              <div class="summary__sub">За весь период расчёта</div>
+            </article>
+            <article class="summary__card">
+              <div class="summary__label">Уплачено процентов</div>
+              <div
+                class="summary__value"
+                x-text="fmt(summary.totalInterestPaid)"
+              ></div>
+              <div class="summary__sub">До закрытия или конца горизонта</div>
+            </article>
+            <article class="summary__card">
+              <div class="summary__label">Реальные ставки</div>
+              <div
+                class="summary__value"
+                x-text="summary.realInvestRateLabel"
+              ></div>
+              <div
+                class="summary__sub"
+                x-text="summary.realLoanRateLabel"
+              ></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel__body">
+              <div class="tabs">
+                <button
+                  class="tabs__button"
+                  :class="{ 'tabs__button--active': view === 'table' }"
+                  @click="view = 'table'"
+                  type="button"
+                >
+                  Таблица по месяцам
+                </button>
+                <button
+                  class="tabs__button"
+                  :class="{ 'tabs__button--active': view === 'notes' }"
+                  @click="view = 'notes'"
+                  type="button"
+                >
+                  Логика расчёта
+                </button>
+              </div>
+
+              <div class="panel__content" x-show="view === 'notes'">
+                <section>
+                  <p class="content__note">
+                    1. Доход супругов индексируется в январе каждого года на
+                    указанную инфляцию.<br />
+                    2. Каждый месяц считается ипотечный процент, часть платежа в
+                    тело и дополнительный поток на инвестиции или досрочку.<br />
+                    3. В январе каждого года считается возврат НДФЛ за
+                    предыдущий год: сначала ИИС, потом покупка жилья, потом
+                    проценты. При стратегии инвестиций возврат добавляется в
+                    капитал, при стратегии досрочного погашения — сразу
+                    направляется в досрочное погашение.<br />
+                    4. Если выбрана стратегия инвестиций, момент закрытия
+                    определяется как первый месяц, когда капитал не меньше
+                    остатка долга.
+                  </p>
+                  <div class="legend">
+                    <span class="legend__item"
+                      >Покупка жилья: база 2 000 000 ₽ на супруга</span
+                    >
+                    <span class="legend__item"
+                      >Проценты: база 3 000 000 ₽ на супруга</span
+                    >
+                    <span class="legend__item"
+                      >ИИС: база до 400 000 ₽ в год на супруга</span
+                    >
+                  </div>
+                </section>
+              </div>
+
+              <div class="panel__content" x-show="view === 'table'">
+                <section class="table-box">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th class="table__head-cell table__head-cell--left">
+                          Месяц
+                        </th>
+                        <th class="table__head-cell table__head-cell--left">
+                          Дата
+                        </th>
+                        <th class="table__head-cell table__head-cell--left">
+                          Год / мес
+                        </th>
+                        <th class="table__head-cell">Доход супр. 1</th>
+                        <th class="table__head-cell">Доход супр. 2</th>
+                        <th class="table__head-cell">НДФЛ супр. 1</th>
+                        <th class="table__head-cell">НДФЛ супр. 2</th>
+                        <th class="table__head-cell">Платёж</th>
+                        <th class="table__head-cell">Проценты</th>
+                        <th class="table__head-cell">Тело</th>
+                        <th class="table__head-cell">Досрочка</th>
+                        <th class="table__head-cell">Остаток долга</th>
+                        <th class="table__head-cell">Инвест. супр. 1</th>
+                        <th class="table__head-cell">Инвест. супр. 2</th>
+                        <th class="table__head-cell">Доход инвестиций</th>
+                        <th class="table__head-cell">Возврат НДФЛ</th>
+                        <th class="table__head-cell">Капитал</th>
+                        <th class="table__head-cell">Вычет ИИС</th>
+                        <th class="table__head-cell">Вычет покупка</th>
+                        <th class="table__head-cell">Вычет проценты</th>
+                        <th class="table__head-cell table__head-cell--left">
+                          Комментарий
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="row in rows" :key="row.month">
+                        <tr class="table__row">
+                          <td
+                            class="table__cell table__cell--left"
+                            x-text="row.month"
+                          ></td>
+                          <td
+                            class="table__cell table__cell--left"
+                            x-text="row.date"
+                          ></td>
+                          <td
+                            class="table__cell table__cell--left"
+                            x-text="row.year + ' / ' + row.monthInYear"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.income1)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.income2)"
+                          ></td>
+                          <td class="table__cell" x-text="fmt(row.ndfl1)"></td>
+                          <td class="table__cell" x-text="fmt(row.ndfl2)"></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.payment)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.interest)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.principal)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.prepayment)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.balance)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.invest1)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.invest2)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.investYield)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.refundReceived)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.capital)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.availableIisRefund)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.availablePurchaseRefund)"
+                          ></td>
+                          <td
+                            class="table__cell"
+                            x-text="fmt(row.availableInterestRefund)"
+                          ></td>
+                          <td
+                            class="table__cell table__cell--left"
+                            x-text="row.note"
+                          ></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
